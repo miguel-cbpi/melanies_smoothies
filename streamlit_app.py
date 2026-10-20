@@ -16,6 +16,7 @@ name_on_order = st.text_input("Name on Smoothie:")
 st.write("The name on your Smoothie will be:", name_on_order)
 
 st.write("Secrets disponibles:", list(st.secrets.keys()))
+st.write("Conexiones disponibles:", list(st.secrets["connections"].keys()))
 
 cnx = st.connection("snowflake")
 session = cnx.session()
