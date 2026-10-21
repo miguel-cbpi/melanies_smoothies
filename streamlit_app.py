@@ -2,6 +2,7 @@
 import streamlit as st
 import os
 import requests
+import pandas as pd
 from snowflake.snowpark.functions import col
 
 # Write directly to the app
@@ -27,14 +28,20 @@ session = cnx.session()
 my_dataframe = session.table(
     "smoothies.public.fruit_options"
 ).select(
-    col("FRUIT_NAME")
+    col("FRUIT_NAME"),
+    col("SEARCH_ON")
 )
 
-# st.dataframe(data=my_dataframe, use_container_width=True)
+# Convert Snowpark DataFrame to Pandas DataFrame
+pd_df = my_dataframe.to_pandas()
+
+# Opcional: solo para comprobar datos
+# st.dataframe(data=pd_df, use_container_width=True)
+# st.stop()
 
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    my_dataframe,
+    my_dataframe.select(col("FRUIT_NAME")),
     max_selections=5
 )
 
@@ -43,6 +50,19 @@ if ingredients_list:
 
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
+
+        search_on = pd_df.loc[
+            pd_df["FRUIT_NAME"] == fruit_chosen,
+            "SEARCH_ON"
+        ].iloc[0]
+
+        st.write(
+            "The search value for ",
+            fruit_chosen,
+            " is ",
+            search_on,
+            "."
+        )
 
         st.subheader(fruit_chosen + " Nutrition Information")
 
@@ -61,6 +81,7 @@ if ingredients_list:
             values ('""" + ingredients_string + """','""" + name_on_order + """')"""
 
     #st.write(my_insert_stmt)
+
     time_to_insert = st.button("Submit Order")
 
     #st.write(my_insert_stmt)
@@ -68,4 +89,10 @@ if ingredients_list:
 
     if time_to_insert:
         session.sql(my_insert_stmt).collect()
-        st.success("Your Smoothie is ordered, " + name_on_order + "!", icon="✅")
+
+        st.success(
+            "Your Smoothie is ordered, "
+            + name_on_order
+            + "!",
+            icon="✅"
+        )
